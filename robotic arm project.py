@@ -1,42 +1,117 @@
-import serial
-import time
+import pyttsx3
+import speech_recognition as sr
+from gpiozero import Servo
+from time import sleep
 
-# Initialize Serial Communication
-arduino = serial.Serial(port='COM3', baudrate=9600, timeout=1)
+# Initialize Text-to-Speech engine
+engine = pyttsx3.init()
 
-def send_command(command):
-    """Send a command to the robotic arm via Serial."""
-    arduino.write(command.encode())
-    time.sleep(0.1)
+# Adjust voice settings (optional)
+engine.setProperty('rate', 150)  # Speed of speech
+engine.setProperty('volume', 1.0)  # Volume (0.0 to 1.0)
 
-send_command("M1:90;M2:45;M3:0")
+# Initialize servos (GPIO pins based on your design)
+servo_base = Servo(17)    # Base movement
+servo_shoulder = Servo(18)  # Shoulder movement
+servo_gripper = Servo(27)  # Gripper movement
 
-def move_motor(joint, angle):
-    """Move a specific motor (joint) to the desired angle."""
-    command = f"M{joint}:{angle};"
-    send_command(command)
+# Speak function to output text as speech
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
 
-move_motor(1, 90)
+# Commands for arm movements
+def move_base_left():
+    speak("Turning the base to the left.")
+    print("Moving base left...")
+    servo_base.max()
+    sleep(1)
+    servo_base.mid()
+    speak("Base moved to the left.")
 
-move_motor(2, 45)
+def move_base_right():
+    speak("Turning the base to the right.")
+    print("Moving base right...")
+    servo_base.min()
+    sleep(1)
+    servo_base.mid()
+    speak("Base moved to the right.")
 
-import math
+def lift_arm():
+    speak("Lifting the arm.")
+    print("Lifting arm...")
+    servo_shoulder.max()
+    sleep(1)
+    servo_shoulder.mid()
+    speak("The arm has been lifted.")
 
-def calculate_angles(x, y, l1, l2):
-    """Calculate joint angles for a 2D robotic arm with 2 links."""
-    d = (x**2 + y**2)**0.5
-    if d > l1 + l2:
-        raise ValueError("Target out of reach")
+def lower_arm():
+    speak("Lowering the arm.")
+    print("Lowering arm...")
+    servo_shoulder.min()
+    sleep(1)
+    servo_shoulder.mid()
+    speak("The arm has been lowered.")
 
-    theta2 = math.acos((x**2 + y**2 - l1**2 - l2**2) / (2 * l1 * l2))
-    theta1 = math.atan2(y, x) - math.atan2(l2 * math.sin(theta2), l1 + l2 * math.cos(theta2))
+def open_gripper():
+    speak("Opening the gripper.")
+    print("Opening gripper...")
+    servo_gripper.min()
+    sleep(1)
+    servo_gripper.mid()
+    speak("Gripper is now open.")
 
-    return math.degrees(theta1), math.degrees(theta2)
+def close_gripper():
+    speak("Closing the gripper.")
+    print("Closing gripper...")
+    servo_gripper.max()
+    sleep(1)
+    servo_gripper.mid()
+    speak("Gripper is now closed.")
 
-link1_length = 10
-link2_length = 10
-x_target = 15
-y_target = 5
+# Voice recognition setup
+recognizer = sr.Recognizer()
 
-theta1, theta2 = calculate_angles(x_target, y_target, link1_length, link2_length)
-print(f"Joint 1 Angle: {theta1}, Joint 2 Angle: {theta2}")
+def listen_for_command():
+    with sr.Microphone() as source:
+        speak("Listening for your command.")
+        print("Listening...")
+        try:
+            audio = recognizer.listen(source)
+            command = recognizer.recognize_google(audio).lower()
+            print(f"You said: {command}")
+            return command
+        except sr.UnknownValueError:
+            speak("Sorry, I didn't catch that. Please repeat.")
+            return None
+
+# Main loop to handle commands
+def main():
+    speak("Robot arm is ready for commands.")
+    while True:
+        command = listen_for_command()
+        if command:
+            if "move base left" in command:
+                move_base_left()
+            elif "move base right" in command:
+                move_base_right()
+            elif "lift arm" in command:
+                lift_arm()
+            elif "lower arm" in command:
+                lower_arm()
+            elif "open gripper" in command:
+                open_gripper()
+            elif "close gripper" in command:
+                close_gripper()
+            elif "stop" in command:
+                speak("Stopping all operations. Goodbye!")
+                break
+            else:
+                speak("Sorry, I didn't understand that command. Please try again.")
+
+# Run the program
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        speak("Shutting down the robot arm. Goodbye!")
