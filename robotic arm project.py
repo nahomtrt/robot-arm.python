@@ -3,24 +3,19 @@ import speech_recognition as sr
 from gpiozero import Servo
 from time import sleep
 
-# Initialize Text-to-Speech engine
 engine = pyttsx3.init()
 
-# Adjust voice settings (optional)
-engine.setProperty('rate', 150)  # Speed of speech
-engine.setProperty('volume', 1.0)  # Volume (0.0 to 1.0)
+engine.setProperty('rate', 150)  
+engine.setProperty('volume', 1.0)  
 
-# Initialize servos (GPIO pins based on your design)
-servo_base = Servo(17)    # Base movement
-servo_shoulder = Servo(18)  # Shoulder movement
-servo_gripper = Servo(27)  # Gripper movement
+servo_base = Servo(17)  
+servo_shoulder = Servo(18)  
+servo_gripper = Servo(27)  
 
-# Speak function to output text as speech
 def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-# Commands for arm movements
 def move_base_left():
     speak("Turning the base to the left.")
     print("Moving base left...")
